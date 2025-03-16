@@ -18,46 +18,50 @@ const STATIC_HTML = `
     <li>当您调用 Gemini API API 时看到错误信息"用户位置不支持 API 使用"。</li>
     <li>您想自定义 Gemini APIAPI</li>
   </ol>
-  <p>有关技术讨论，请访问<a href="https://simonmy.com/posts/使用netlify反向代理google-palm-api.html">此链接</a>。</p>
+  <p>有关原始技术讨论，请访问<a href="https://simonmy.com/posts/使用netlify反向代理google-palm-api.html">此链接</a>。</p>
 </body>
 </html>
 `;
 
 export const handler: Handler = async (event) => {
-  // 返回静态说明页面
-  if (event.path === '/.netlify/functions/proxy') {
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'text/html' },
-      body: STATIC_HTML
-    };
-  }
-
-  // 处理 API 转发请求
-  const path = event.path.replace('/.netlify/functions/proxy', '');
-  const url = `${TARGET_URL}${path}`;
-
-  try {
-    const response = await fetch(url, {
-      method: event.httpMethod,
-      headers: {
-        ...event.headers,
-        host: new URL(TARGET_URL).host,
-      },
-      body: event.body
-    });
-
-    const responseBody = await response.text();
-
-    return {
-      statusCode: response.status,
-      headers: { 'Content-Type': 'application/json' },
-      body: responseBody
-    };
-  } catch (error) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: 'Proxy error', details: error.message })
-    };
-  }
-};
+    const path = event.path.replace('/.netlify/functions/proxy', '');
+  
+    // 静态页面路由判断
+    if (path === '/api' || path === '/api/') {
+      return {
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'text/html'
+        },
+        body: STATIC_HTML
+      };
+    }
+  
+    const url = `${TARGET_URL}${path}`;
+  
+    try {
+      const response = await fetch(url, {
+        method: event.httpMethod,
+        headers: {
+          ...event.headers,
+          host: new URL(TARGET_URL).host,
+        },
+        body: event.body
+      });
+  
+      const responseBody = await response.text();
+  
+      return {
+        statusCode: response.status,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: responseBody
+      };
+    } catch (error) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: 'Proxy error', details: error.message })
+      };
+    }
+  };
